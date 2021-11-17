@@ -1,0 +1,31 @@
+galaxy_info:
+  author: Loic Roux
+  description: Set up porter run paas
+  company: SmartLogic
+  license: MIT
+  min_ansible_version: 2.9
+  platforms:
+    - name: Ubuntu
+      versions:
+        - xenial
+        - bionic
+        - focal
+    - name: Debian
+      versions:
+        - buster
+  galaxy_tags:
+    - http
+    - app
+    - docker
+    - traefik
+    - "heroku like"
+dependencies:
+  - name: role-kubernetes
+    src: geerlingguy.kubernetes
+    version: 7.1.0
+    vars:
+      kubernetes_kubeadm_kubelet_config_file_path: '/etc/kubernetes/kubeadm-kubelet-config.yaml'
+      kubernetes_config_kubelet_configuration:
+      cgroupDriver: cgroupfs
+  - name: role-docker
+    src: nickjj.docker

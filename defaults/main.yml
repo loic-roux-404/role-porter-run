@@ -1,0 +1,5 @@
+---
+# Base domain
+porter_run_domain: "{{ hostvars[inventory_hostname].ansible_host }}"
+# default to latest
+porter_run_version: ~
