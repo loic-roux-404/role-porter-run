@@ -20,6 +20,8 @@ galaxy_info:
     - traefik
     - "heroku like"
 dependencies:
+  - name: role-docker
+    src: nickjj.docker
   - name: role-kubernetes
     src: geerlingguy.kubernetes
     version: 7.1.0
@@ -27,5 +29,4 @@ dependencies:
       kubernetes_kubeadm_kubelet_config_file_path: '/etc/kubernetes/kubeadm-kubelet-config.yaml'
       kubernetes_config_kubelet_configuration:
       cgroupDriver: cgroupfs
-  - name: role-docker
-    src: nickjj.docker
+

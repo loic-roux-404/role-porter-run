@@ -11,6 +11,7 @@
     "**/*_vars/**": "ansible",
     "roles/**/*.yml": "ansible",
     "playbooks/**/*.yml": "ansible",
+    "meta/*.yml": "ansible",
     "**/*ansible*/**/*.yml": "ansible",
     "**/vars/**/*.yml": "ansible",
     "*.tmpl": "gotemplate"

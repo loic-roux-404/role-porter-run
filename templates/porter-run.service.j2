@@ -1,0 +1,11 @@
+[Unit]
+Description=Porter Paas server service
+
+[Service]
+User={{ porter_user | d('root') }}
+WorkingDirectory={{ porter_user_home | d('/root') }}
+ExecStart=porter server start
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

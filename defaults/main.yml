@@ -1,5 +1,23 @@
 ---
+# Core
+porter_service_directory: /etc/systemd/system/porter-run.d
 # Base domain
 porter_run_domain: "{{ hostvars[inventory_hostname].ansible_host }}"
+porter_user: root
+porter_user_home: "{{ ('/home/%s' % porter_user) if porter_user != 'root' else '/root' }}"
 # default to latest
 porter_run_version: ~
+# oauth github app env vars
+github_oauth_client_id: ~
+github_oauth_secret: ~
+webhook_oauth_secret: ~
+github_oauth_name: ~
+github_oauth_id: ~
+oauth_private_key_location: ~
+# oauth github app env vars
+github_app_id: ~
+github_secret: ~
+webhook_secret: ~
+github_app_name: ~
+github_app_id: ~
+app_key_location: ~

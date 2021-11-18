@@ -1,0 +1,52 @@
+- name: Create folders
+  become: True
+  become_user: root
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  loop:
+    - "{{ porter_service_directory }}"
+
+- name: Copy installer
+  ansible.builtin.copy:
+    src: files/install.sh
+    dest: /tmp/install.sh
+    owner: root
+    group: root
+    mode: '0644'
+    backup: yes
+
+- set_fact:
+    oauth_env:
+      GITHUB_APP_CLIENT_ID: "{{ github_oauth_id  }}"
+      GITHUB_APP_CLIENT_SECRET: "{{ github_oauth_secret }}"
+      GITHUB_APP_WEBHOOK_SECRET: "{{ webhook_oauth_secret }}"
+      GITHUB_APP_NAME: "{{ github_oauth_name }}"
+      GITHUB_APP_ID: "{{ github_oauth_app_id }}"
+      GITHUB_APP_SECRET_PATH: "{{  oauth_key_location  }}"
+    app_env:
+      GITHUB_APP_CLIENT_ID: "{{ github_app_id }}"
+      GITHUB_APP_CLIENT_SECRET: "{{ github_secret }}"
+      GITHUB_APP_WEBHOOK_SECRET: "{{ webhook_secret }}"
+      GITHUB_APP_NAME: "{{ github_app_name }}"
+      GITHUB_APP_ID: "{{ github_app_id }}"
+      GITHUB_APP_SECRET_PATH: "{{  github_app_key_location }}"
+
+- name: Install
+  ansible.builtin.command:
+    chdir: "/tmp"
+    cmd: "./install.sh '{{ porter_run_version }}'"
+
+- name: Create service
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: 0640
+  loop:
+    - { src: porter-run.service.j2, dest: /etc/systemd/system }
+    - { src: env.conf.j2, dest: /etc/systemd/system/porter-run.d }
