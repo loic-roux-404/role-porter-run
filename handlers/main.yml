@@ -1,6 +1,9 @@
 ---
 
-- name: Restart porter-run
+- name: reload systemd
+  ansible.builtin.command: systemctl daemon-reload
+
+- name: restart porter-run
   ansible.builtin.service:
     name: porter-run
     state: restarted

@@ -4,7 +4,7 @@ Description=Porter Paas server service
 [Service]
 User={{ porter_user | d('root') }}
 WorkingDirectory={{ porter_user_home | d('/root') }}
-ExecStart=porter server start
+ExecStart=porter server start --db postgre --port {{ porter_run_port }}
 Restart=always
 
 [Install]

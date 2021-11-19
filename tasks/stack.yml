@@ -10,36 +10,44 @@
   loop:
     - "{{ porter_service_directory }}"
 
-- name: Copy installer
-  ansible.builtin.copy:
-    src: files/install.sh
-    dest: /tmp/install.sh
-    owner: root
-    group: root
-    mode: '0644'
-    backup: yes
-
 - name: Integrations env
   set_fact:
     oauth_env:
-      GITHUB_APP_CLIENT_ID: "{{ github_oauth_id  }}"
-      GITHUB_APP_CLIENT_SECRET: "{{ github_oauth_secret }}"
-      GITHUB_APP_WEBHOOK_SECRET: "{{ webhook_oauth_secret }}"
-      GITHUB_APP_NAME: "{{ github_oauth_name }}"
-      GITHUB_APP_ID: "{{ github_oauth_app_id }}"
-      GITHUB_APP_SECRET_PATH: "{{ oauth_key_location }}"
+      GITHUB_CLIENT_ID: "{{ github_oauth_id  }}"
+      GITHUB_CLIENT_SECRET: "{{ github_oauth_secret }}"
     app_env:
       GITHUB_APP_CLIENT_ID: "{{ github_app_id }}"
       GITHUB_APP_CLIENT_SECRET: "{{ github_secret }}"
       GITHUB_APP_WEBHOOK_SECRET: "{{ webhook_secret }}"
       GITHUB_APP_NAME: "{{ github_app_name }}"
       GITHUB_APP_ID: "{{ github_app_id }}"
-      GITHUB_APP_SECRET_PATH: "{{ github_app_key_location }}"
+      GITHUB_APP_SECRET_PATH: "{{ github_app_private_key_location }}"
 
-- name: Install
-  ansible.builtin.command:
-    chdir: "/tmp"
-    cmd: "./install.sh '{{ porter_run_version }}'"
+- name: Create download url
+  set_fact:
+    zip_file: "porter_{{ porter_run_version }}_{{ ansible_system }}_{{ ansible_machine }}.zip"
+
+- name: "Download porter {{ porter_run_version }}"
+  get_url:
+    url: "{{ porter_url }}/{{ porter_run_version }}/{{ zip_file }}"
+    dest: /tmp
+  register: zip_file
+
+- name: UNZIPPING the files
+  unarchive:
+    src: "{{ zip_file.dest }}"
+    dest: /tmp/
+    copy: no
+  register: unzipped_file
+
+- name: Copy files from foo to bar
+  copy:
+    remote_src: True
+    src: /tmp/porter
+    dest: /usr/local/bin
+    owner: root
+    group: "{{ porter_user }}"
+    mode: 0510
 
 - name: Create service
   ansible.builtin.template:
@@ -49,10 +57,22 @@
     group: root
     mode: 0640
   loop:
-    - { src: porter-run.service.j2, dest: /etc/systemd/system }
-    - { src: env.conf.j2, dest: /etc/systemd/system/porter-run.d }
+    - { src: porter-run.service.j2, dest: /etc/systemd/system/porter-run.service }
+    - { src: env.conf.j2, dest: "{{ porter_service_directory }}/env.conf" }
+  notify:
+    - reload systemd
+    - restart porter-run
 
-- name: Start service
-  ansible.builtin.service:
-    name: porter-run
-    state: started
+- name: configure
+  become: true
+  become_user: '{{ porter_user }}'
+  command: "porter config set-host {{ porter_run_addr }}:{{ porter_run_port }}"
+
+- name: clean
+  become: True
+  become_user: root
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/porter
