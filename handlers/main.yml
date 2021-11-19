@@ -1,2 +1,6 @@
 ---
 
+- name: Restart porter-run
+  ansible.builtin.service:
+    name: porter-run
+    state: restarted
