@@ -9,16 +9,26 @@
     mode: 0755
   loop:
     - "{{ porter_service_directory }}"
+    - "{{ github_app_private_key_location.split('/')[0:-1] | join('/') }}"
+
+- name: Copy github key
+  copy:
+    content: "{{ github_app_private_key_src }}"
+    dest: "{{ github_app_private_key_location }}"
+    owner: "{{ porter_user }}"
+    group: "{{ porter_user }}"
+    mode: 0400
+  when: github_app_private_key_src | d(False)
 
 - name: Integrations env
   set_fact:
     oauth_env:
-      GITHUB_CLIENT_ID: "{{ github_oauth_id  }}"
+      GITHUB_CLIENT_ID: "{{ github_oauth_id }}"
       GITHUB_CLIENT_SECRET: "{{ github_oauth_secret }}"
     app_env:
       GITHUB_APP_CLIENT_ID: "{{ github_app_id }}"
-      GITHUB_APP_CLIENT_SECRET: "{{ github_secret }}"
-      GITHUB_APP_WEBHOOK_SECRET: "{{ webhook_secret }}"
+      GITHUB_APP_CLIENT_SECRET: "{{ github_app_secret }}"
+      GITHUB_APP_WEBHOOK_SECRET: "{{ github_app_webhook_secret }}"
       GITHUB_APP_NAME: "{{ github_app_name }}"
       GITHUB_APP_ID: "{{ github_app_id }}"
       GITHUB_APP_SECRET_PATH: "{{ github_app_private_key_location }}"
@@ -58,7 +68,6 @@
     mode: 0640
   loop:
     - { src: porter-run.service.j2, dest: /etc/systemd/system/porter-run.service }
-    - { src: env.conf.j2, dest: "{{ porter_service_directory }}/env.conf" }
   notify:
     - reload systemd
     - restart porter-run

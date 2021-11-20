@@ -29,4 +29,3 @@ dependencies:
       kubernetes_kubeadm_kubelet_config_file_path: '/etc/kubernetes/kubeadm-kubelet-config.yaml'
       kubernetes_config_kubelet_configuration:
         cgroupDriver: cgroupfs
-
