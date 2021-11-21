@@ -18,7 +18,7 @@ Install porter self hosted
 
 ## Requirements
 
-None
+pip package `openshift` on remote machines (Included)
 
 ## Role Variables
 

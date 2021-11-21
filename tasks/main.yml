@@ -1,5 +1,9 @@
 ---
 
+- ansible.builtin.pip:
+    name: openshift
+  tags: [porter]
+
 - include: stack.yml
   become: True
   tags: [porter]

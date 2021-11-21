@@ -5,9 +5,11 @@ porter_run_version: v0.11.2
 porter_url: "https://github.com/porter-dev/porter/releases/download"
 porter_service_directory: /etc/systemd/system/porter-run.d
 github_app_private_key_src: null
-# Base domain
+# Config
+# state: replace / absent / present
+# TODO
+porter_run_state: replace
 porter_run_port: 4565
-porter_run_addr: 0.0.0.0
 porter_user: root
 porter_user_home: "{{ ('/home/%s' % porter_user) if porter_user != 'root' else '/root' }}"
 # oauth github app env vars

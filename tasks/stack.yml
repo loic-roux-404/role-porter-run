@@ -1,4 +1,9 @@
+---
+- set_fact:
+    github_app_private_key_dir: "{{ github_app_private_key_location.split('/')[0:-1] | join('/') }}"
+
 - name: Create folders
+  tags: [porter-key, porter-pod]
   become: True
   become_user: root
   ansible.builtin.file:
@@ -9,9 +14,10 @@
     mode: 0755
   loop:
     - "{{ porter_service_directory }}"
-    - "{{ github_app_private_key_location.split('/')[0:-1] | join('/') }}"
+    - "{{ github_app_private_key_dir }}"
 
 - name: Copy github key
+  tags: [porter-key]
   copy:
     content: "{{ github_app_private_key_src }}"
     dest: "{{ github_app_private_key_location }}"
@@ -20,68 +26,82 @@
     mode: 0400
   when: github_app_private_key_src | d(False)
 
-- name: Integrations env
-  set_fact:
-    oauth_env:
-      GITHUB_CLIENT_ID: "{{ github_oauth_id }}"
-      GITHUB_CLIENT_SECRET: "{{ github_oauth_secret }}"
-    app_env:
-      GITHUB_APP_CLIENT_ID: "{{ github_app_id }}"
-      GITHUB_APP_CLIENT_SECRET: "{{ github_app_secret }}"
-      GITHUB_APP_WEBHOOK_SECRET: "{{ github_app_webhook_secret }}"
-      GITHUB_APP_NAME: "{{ github_app_name }}"
-      GITHUB_APP_ID: "{{ github_app_id }}"
-      GITHUB_APP_SECRET_PATH: "{{ github_app_private_key_location }}"
+- name: check pod already present
+  command: kubectl get pods
+  register: pod_porter_in_list_res
 
-- name: Create download url
-  set_fact:
-    zip_file: "porter_{{ porter_run_version }}_{{ ansible_system }}_{{ ansible_machine }}.zip"
+- set_fact:
+    pod_porter_in_list: "{{ pod_porter_in_list_res.stdout != '' }}"
 
-- name: "Download porter {{ porter_run_version }}"
-  get_url:
-    url: "{{ porter_url }}/{{ porter_run_version }}/{{ zip_file }}"
-    dest: /tmp
-  register: zip_file
+# TODO use secrets k8s feature to secure environement variables
+# https://kubernetes.io/docs/tasks/configmap-secret/
+# TODO create a service definition
+# Add a redis pod (and postgre ? need cpu / mem checks)
+# image: redis:latest
+# container_name: redis
+# ports:
+#   - 6379:6379
+# volumes:
+#   - database:/var/lib/postgresql/data
+- name: Create porter pod
+  tags: [porter-pod]
+  when: not pod_porter_in_list
+  kubernetes.core.k8s:
+    name: porter
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Pod
+      metadata:
+        name: porter-run-1
+        namespace: default
+      replicas: 1
+      spec:
+        ports:
+          - protocol: TCP
+            port: "{{ porter_run_port }}"
+            targetPort: "{{ porter_run_port }}"
+        containers:
+          - name: porter-run
+            image: "porter1/porter:{{ porter_run_version }}"
+            ports:
+              - containerPort: 8080
+                hostPort: "{{ porter_run_port }}"
+            env:
+            # Integrations
+              - name: "GITHUB_CLIENT_ID"
+                value: '"{{ github_oauth_id }}"'
+              - name: "GITHUB_CLIENT_SECRET"
+                value: '"{{ github_oauth_secret }}"'
+              - name: "GITHUB_APP_CLIENT_ID"
+                value: '"{{ github_app_id }}"'
+              - name: "GITHUB_APP_CLIENT_SECRET"
+                value: '"{{ github_app_secret }}"'
+              - name: "GITHUB_APP_WEBHOOK_SECRET"
+                value: '"{{ github_app_webhook_secret }}"'
+              - name: "GITHUB_APP_NAME"
+                value: '"{{ github_app_name }}"'
+              - name: "GITHUB_APP_ID"
+                value: '"{{ github_app_id }}"'
+              - name: "GITHUB_APP_SECRET_PATH"
+                value: '"{{ github_app_private_key_location }}"'
+            # Db
+              - name: REDIS_ENABLED
+                value: 'false'
+              - name: SQL_LITE_PATH
+                value: '/sqlite/porter.db'
 
-- name: UNZIPPING the files
-  unarchive:
-    src: "{{ zip_file.dest }}"
-    dest: /tmp/
-    copy: no
-  register: unzipped_file
-
-- name: Copy files from foo to bar
-  copy:
-    remote_src: True
-    src: /tmp/porter
-    dest: /usr/local/bin
-    owner: root
-    group: "{{ porter_user }}"
-    mode: 0510
-
-- name: Create service
-  ansible.builtin.template:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-    owner: root
-    group: root
-    mode: 0640
-  loop:
-    - { src: porter-run.service.j2, dest: /etc/systemd/system/porter-run.service }
-  notify:
-    - reload systemd
-    - restart porter-run
-
-- name: configure
-  become: true
-  become_user: '{{ porter_user }}'
-  command: "porter config set-host {{ porter_run_addr }}:{{ porter_run_port }}"
-
-- name: clean
-  become: True
-  become_user: root
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /tmp/porter
+            volumeMounts:
+              - mountPath: /sqlite
+                name: portersqlite
+              - mountPath: "{{ github_app_private_key_dir }}"
+                name: ghkey
+        volumes:
+          - name: portersqlite
+            hostPath:
+              path: "{{ ansible_env.HOME }}"
+              type: Directory
+          - name: ghkey
+            hostPath:
+              path: "{{ github_app_private_key_dir }}"
+              type: Directory
