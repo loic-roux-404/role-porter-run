@@ -1,4 +1,12 @@
 ---
+# Helm
+# TODO move to another repo
+helm_version: v3.7.1
+helm_aarch: "{{ ansible_kernel.split('-')[-1] }}"
+helm_url: "https://github.com/helm/helm/releases/download/{{ helm_version }}/helm-{{ helm_version }}-{{ ansible_system }}-{{ helm_aarch }}.tar.gz.asc"
+helm_bin_dir: /opt/bin
+helm_tiller: tiller-deploy
+helm_refresh_cache: ""
 # Core
 # TODO add latest support
 porter_run_version: v0.11.2

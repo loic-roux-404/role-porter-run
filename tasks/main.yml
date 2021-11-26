@@ -2,7 +2,11 @@
 
 - ansible.builtin.pip:
     name: openshift
-  tags: [porter]
+  tags: [porter-deps]
+
+- include: helm.yml
+  become: True
+  tags: [porter-deps]
 
 - include: stack.yml
   become: True
